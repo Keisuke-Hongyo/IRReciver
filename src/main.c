@@ -4,8 +4,13 @@
 
 #define AEHA_T		 	 425
 #define AEHA_MARGIN		  75
-#define AEHA_BIT_SIZE	 48	
-#define AEHA_DATA_SIZE	  6
+#define AEHA_BIT_SIZE	  48	
+#define AEHA_DATA_SIZE	   6
+
+#define NEC_T		 	 562
+#define NEC_MARGIN		  60
+#define NEC_BIT_SIZE	  32	
+#define NEC_DATA_SIZE	   4
 
 #define SONY_T		 	 600
 #define SONY_MARGIN		  40
@@ -49,6 +54,74 @@ void init()
 	//TIM2 フリーカウンタ
     TIM2->PSC = 48 - 1;			//TIM2プリスケーラ　 1count/us
     TIM2->CTLR1 |= TIM_CEN;		//TIM2カウント有効(CEN)
+}
+
+// NECフォーマット
+RcvCode NecIrChek(unsigned char *irData)
+{
+	unsigned int t;
+	unsigned char j;
+	unsigned char bit;
+	unsigned char data[NEC_BIT_SIZE]; 
+	
+	/* リーダ部チェック */
+	if(funDigitalRead(PC1) == FUN_LOW) {
+			return recv_none;
+	} 
+
+	/* リーダ部確認 */
+	/* High部分を確認 */
+	TIM2->CNT = 0;
+	while(funDigitalRead(PC1) == FUN_HIGH);
+	t = TIM2->CNT;
+	TIM2->CNT = 0;
+	if((t < (16 * (NEC_T - NEC_MARGIN))) || (t >  (16 * (NEC_T + NEC_MARGIN)))){
+		return recv_err;
+	}
+	
+	/* LOW部分を確認 */
+	while(funDigitalRead(PC1) == FUN_LOW);
+	t = TIM2->CNT;
+	TIM2->CNT = 0;
+	if((t >= (8 * (AEHA_T - AEHA_MARGIN))) ) {
+		if (t >=  (8 * (AEHA_T - AEHA_MARGIN)) && (t <= (8 * (AEHA_T + AEHA_MARGIN)))) {
+			return recv_repeat;
+		}
+	} else {
+		return recv_err;
+	}
+	
+	//データ格納
+	for(bit = 0; bit < NEC_BIT_SIZE ;bit++){
+		while(funDigitalRead(PC1) == FUN_HIGH);
+		while(funDigitalRead(PC1) == FUN_LOW);
+		t = TIM2->CNT;
+		TIM2->CNT = 0;
+		if((t < (2 * (NEC_T - NEC_MARGIN))) && (t > (4 * (NEC_T + NEC_MARGIN)))){
+			return recv_err;
+		} else {
+			if((t >= (2 * (NEC_T - AEHA_MARGIN))) && (t <=  (2 * (NEC_T + AEHA_MARGIN)))){
+				data[bit] = 0x00;
+			} else {
+				data[bit] = 0x01;
+			}
+		}
+	}
+	
+	// データ復元
+	for(j = 0; j < NEC_DATA_SIZE; j++){
+		*irData = 0x00;
+		for(bit = 0; bit < 8; bit++){
+			if(data[bit+(j * 8)]) {
+				*irData |= (1<<bit);
+			} else {
+				*irData &= ~(1<<bit);
+			}
+		}
+		irData++;
+	}	
+	
+	return recv_ok;
 }
 
 // Sonyフォーマット
@@ -178,6 +251,27 @@ RcvCode AehaIrChek(unsigned char *irData)
 	return recv_ok;
 }
 
+
+// NEC 受信処理プログラム
+void nec_ir_recive()
+{
+	RcvCode pat;
+	unsigned char	nec_data[NEC_DATA_SIZE];
+	unsigned char 	i;
+
+	pat = NecIrChek(nec_data);
+	if(pat == recv_ok) {
+		printf("RCV OK!\n");
+		printf("Recive Data: ");
+		for(i=0;i<NEC_DATA_SIZE;i++){
+			printf("0x%02x ",nec_data[i]);
+		}
+		printf("\n");
+	} else if (pat == recv_repeat) {
+		printf("RCV REPEAT \n");
+	} 
+	
+}
 // AEHA 受信処理プログラム
 void aeha_ir_recive()
 {
@@ -232,12 +326,12 @@ int main(void) {
 
 	printf("IR RECIVER TEST\n");
 	
-	format = AEHA;
+	format = NEC;
 	
 	while (1) {
 		
 		switch (format) {
-			case NEC: 	break;
+			case NEC: 	nec_ir_recive(); break;
 			case AEHA:	aeha_ir_recive(); break;
 			case SONY:	sony_ir_recive(); break;
 			
