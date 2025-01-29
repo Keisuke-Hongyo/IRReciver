@@ -8,7 +8,7 @@
 #define AEHA_DATA_SIZE	   6
 
 #define NEC_T		 	 562
-#define NEC_MARGIN		  60
+#define NEC_MARGIN		  40
 #define NEC_BIT_SIZE	  32	
 #define NEC_DATA_SIZE	   4
 
@@ -31,6 +31,12 @@ typedef enum {
 	AEHA,
 	SONY
 } IrFormat;
+
+// Sony用赤外線リモコン受信データ構造体
+struct nec_ir_data {
+	unsigned char	customercode;		// カスタマコード
+	unsigned short	data;				// データ
+};
 
 // Sony用赤外線リモコン受信データ構造体
 struct sony_ir_data {
@@ -57,12 +63,13 @@ void init()
 }
 
 // NECフォーマット
-RcvCode NecIrChek(unsigned char *irData)
+RcvCode NecIrChek(struct nec_ir_data *irData)
 {
 	unsigned int t;
 	unsigned char j;
 	unsigned char bit;
-	unsigned char data[NEC_BIT_SIZE]; 
+	unsigned char data[NEC_BIT_SIZE];
+	unsigned char rdata[NEC_DATA_SIZE]; 
 	
 	/* リーダ部チェック */
 	if(funDigitalRead(PC1) == FUN_LOW) {
@@ -110,17 +117,24 @@ RcvCode NecIrChek(unsigned char *irData)
 	
 	// データ復元
 	for(j = 0; j < NEC_DATA_SIZE; j++){
-		*irData = 0x00;
+		rdata[j] = 0x00;
 		for(bit = 0; bit < 8; bit++){
 			if(data[bit+(j * 8)]) {
-				*irData |= (1<<bit);
+				rdata[j] |= (1<<bit);
 			} else {
-				*irData &= ~(1<<bit);
+				rdata[j] &= ~(1<<bit);
 			}
 		}
-		irData++;
 	}	
-	
+
+	if((rdata[0] & rdata[1]) == 0x00) {
+		irData->customercode = rdata[0];
+	}
+
+	if((rdata[2] & rdata[3]) == 0x00) {
+		irData->data = rdata[2];
+	}
+
 	return recv_ok;
 }
 
@@ -256,22 +270,23 @@ RcvCode AehaIrChek(unsigned char *irData)
 void nec_ir_recive()
 {
 	RcvCode pat;
-	unsigned char	nec_data[NEC_DATA_SIZE];
-	unsigned char 	i;
+	//unsigned char nec_data[NEC_DATA_SIZE];
+	//unsigned char 	i;
+	struct  nec_ir_data irdata;
 
-	pat = NecIrChek(nec_data);
+	pat = NecIrChek(&irdata);
 	if(pat == recv_ok) {
 		printf("RCV OK!\n");
-		printf("Recive Data: ");
-		for(i=0;i<NEC_DATA_SIZE;i++){
+		printf("Recive Data: Customer Code = 0x%02x Data = 0x%02x \n"
+							,irdata.customercode,irdata.data);
+		/* for(i=0;i<NEC_DATA_SIZE;i++){
 			printf("0x%02x ",nec_data[i]);
-		}
-		printf("\n");
+		} 
+		printf("\n");*/
 	} else if (pat == recv_repeat) {
 		printf("RCV REPEAT \n");
-	} 
-	
-}
+	}
+} 
 // AEHA 受信処理プログラム
 void aeha_ir_recive()
 {
