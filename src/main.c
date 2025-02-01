@@ -283,6 +283,11 @@ void nec_ir_recive()
 			printf("0x%02x ",nec_data[i]);
 		} 
 		printf("\n");*/
+		if (irdata.data == 0xf8) {
+			funDigitalWrite(PA2, FUN_LOW);
+		} else if (irdata.data == 0x78) {
+			funDigitalWrite(PA2, FUN_HIGH);
+		}
 	} else if (pat == recv_repeat) {
 		printf("RCV REPEAT \n");
 	}
