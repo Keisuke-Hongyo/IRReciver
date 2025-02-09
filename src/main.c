@@ -107,7 +107,7 @@ RcvCode NecIrChek(struct nec_ir_data *irData)
 		if((t < (2 * (NEC_T - NEC_MARGIN))) && (t > (4 * (NEC_T + NEC_MARGIN)))){
 			return recv_err;
 		} else {
-			if((t >= (2 * (NEC_T - AEHA_MARGIN))) && (t <=  (2 * (NEC_T + AEHA_MARGIN)))){
+			if((t >= (2 * (NEC_T - NEC_MARGIN))) && (t <=  (2 * (NEC_T + NEC_MARGIN)))){
 				data[bit] = 0x00;
 			} else {
 				data[bit] = 0x01;
