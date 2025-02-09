@@ -90,8 +90,8 @@ RcvCode NecIrChek(struct nec_ir_data *irData)
 	while(funDigitalRead(PC1) == FUN_LOW);
 	t = TIM2->CNT;
 	TIM2->CNT = 0;
-	if((t >= (8 * (AEHA_T - AEHA_MARGIN))) ) {
-		if (t >=  (8 * (AEHA_T - AEHA_MARGIN)) && (t <= (8 * (AEHA_T + AEHA_MARGIN)))) {
+	if((t >= (8 * (NEC_T - NEC_MARGIN))) ) {
+		if (t >=  (4 * (NEC_T - NEC_MARGIN)) && (t <= (4 * (NEC_T + NEC_MARGIN)))) {
 			return recv_repeat;
 		}
 	} else {
