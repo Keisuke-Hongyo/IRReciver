@@ -52,10 +52,10 @@ void init()
 	RCC->APB1PCENR |= (RCC_APB1Periph_TIM2);
 
 	// PA1 is 10MHz
-	funPinMode(PA2, FUN_OUTPUT);
-	funPinMode(PC1, FUN_INPUT);
+	funPinMode(PA2, FUN_INPUT);
+	funPinMode(PC1, FUN_OUTPUT);
 
-	funDigitalWrite(PA2, FUN_HIGH);
+	funDigitalWrite(PC1, FUN_HIGH);
 
 	//TIM2 フリーカウンタ
     TIM2->PSC = 48 - 1;			//TIM2プリスケーラ　 1count/us
