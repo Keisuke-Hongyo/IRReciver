@@ -17,6 +17,8 @@
 #define SONY_BIT_SIZE	 20
 #define SONY_DATA_SIZE	  4	
 
+#define IR_INPUT_PIN	PA2
+#define CHK_OUT_PIN		PC1
 // リモコン用
 typedef enum {
 	recv_none,
@@ -52,10 +54,10 @@ void init()
 	RCC->APB1PCENR |= (RCC_APB1Periph_TIM2);
 
 	// PA1 is 10MHz
-	funPinMode(PA2, FUN_INPUT);
-	funPinMode(PC1, FUN_OUTPUT);
+	funPinMode(IR_INPUT_PIN, FUN_INPUT);
+	funPinMode(CHK_OUT_PIN, FUN_OUTPUT);
 
-	funDigitalWrite(PC1, FUN_HIGH);
+	funDigitalWrite(CHK_OUT_PIN, FUN_HIGH);
 
 	//TIM2 フリーカウンタ
     TIM2->PSC = 48 - 1;			//TIM2プリスケーラ　 1count/us
@@ -72,14 +74,14 @@ RcvCode NecIrChek(struct nec_ir_data *irData)
 	unsigned char rdata[NEC_DATA_SIZE]; 
 	
 	/* リーダ部チェック */
-	if(funDigitalRead(PC1) == FUN_LOW) {
+	if(funDigitalRead(IR_INPUT_PIN) == FUN_LOW) {
 			return recv_none;
 	} 
 
 	/* リーダ部確認 */
 	/* High部分を確認 */
 	TIM2->CNT = 0;
-	while(funDigitalRead(PC1) == FUN_HIGH);
+	while(funDigitalRead(IR_INPUT_PIN) == FUN_HIGH);
 	t = TIM2->CNT;
 	TIM2->CNT = 0;
 	if((t < (16 * (NEC_T - NEC_MARGIN))) || (t >  (16 * (NEC_T + NEC_MARGIN)))){
@@ -87,7 +89,7 @@ RcvCode NecIrChek(struct nec_ir_data *irData)
 	}
 	
 	/* LOW部分を確認 */
-	while(funDigitalRead(PC1) == FUN_LOW);
+	while(funDigitalRead(IR_INPUT_PIN) == FUN_LOW);
 	t = TIM2->CNT;
 	TIM2->CNT = 0;
 	if((t >= (8 * (NEC_T - NEC_MARGIN))) ) {
@@ -100,8 +102,8 @@ RcvCode NecIrChek(struct nec_ir_data *irData)
 	
 	//データ格納
 	for(bit = 0; bit < NEC_BIT_SIZE ;bit++){
-		while(funDigitalRead(PC1) == FUN_HIGH);
-		while(funDigitalRead(PC1) == FUN_LOW);
+		while(funDigitalRead(IR_INPUT_PIN) == FUN_HIGH);
+		while(funDigitalRead(IR_INPUT_PIN) == FUN_LOW);
 		t = TIM2->CNT;
 		TIM2->CNT = 0;
 		if((t < (2 * (NEC_T - NEC_MARGIN))) && (t > (4 * (NEC_T + NEC_MARGIN)))){
@@ -147,14 +149,14 @@ RcvCode SonyIrChek(struct  sony_ir_data *irData)
 	unsigned char data[SONY_BIT_SIZE];
 
 	/* リーダ部チェック */
-	if(funDigitalRead(PC1) == FUN_LOW) {
+	if(funDigitalRead(IR_INPUT_PIN) == FUN_LOW) {
 			return recv_none;
 	} 
 
 	/* リーダ部確認 */
 	/* High部分を確認 */
 	TIM2->CNT = 0;
-	while(funDigitalRead(PC1) == FUN_HIGH);
+	while(funDigitalRead(IR_INPUT_PIN) == FUN_HIGH);
 	t = TIM2->CNT;
 	TIM2->CNT = 0;
 	if((t < (4 * (SONY_T - SONY_MARGIN))) || (t >  (4 * (SONY_T + SONY_MARGIN)))){
@@ -163,9 +165,9 @@ RcvCode SonyIrChek(struct  sony_ir_data *irData)
 
 	//データ格納
 	for(bit = 0; bit < SONY_BIT_SIZE ;bit++){
-		while(funDigitalRead(PC1) == FUN_LOW);
+		while(funDigitalRead(IR_INPUT_PIN) == FUN_LOW);
 		if(TIM2->CNT > 900) break;
-		while(funDigitalRead(PC1) == FUN_HIGH);
+		while(funDigitalRead(IR_INPUT_PIN) == FUN_HIGH);
 		t = TIM2->CNT;
 		TIM2->CNT = 0;
 		if((t >= (2 * (SONY_T - SONY_MARGIN))) && (t <=  (2 * (SONY_T + SONY_MARGIN)))){
@@ -206,14 +208,14 @@ RcvCode AehaIrChek(unsigned char *irData)
 	unsigned char data[AEHA_BIT_SIZE];
 	
 	/* リーダ部チェック */
-	if(funDigitalRead(PC1) == FUN_LOW) {
+	if(funDigitalRead(IR_INPUT_PIN) == FUN_LOW) {
 			return recv_none;
 	} 
 
 	/* リーダ部確認 */
 	/* High部分を確認 */
 	TIM2->CNT = 0;
-	while(funDigitalRead(PC1) == FUN_HIGH);
+	while(funDigitalRead(IR_INPUT_PIN) == FUN_HIGH);
 	t = TIM2->CNT;
 	TIM2->CNT = 0;
 	if((t < (8 * (AEHA_T - AEHA_MARGIN))) || (t >  (8 * (AEHA_T + AEHA_MARGIN)))){
@@ -221,7 +223,7 @@ RcvCode AehaIrChek(unsigned char *irData)
 	}
 	
 	/* LOW部分を確認 */
-	while(funDigitalRead(PC1) == FUN_LOW);
+	while(funDigitalRead(IR_INPUT_PIN) == FUN_LOW);
 	t = TIM2->CNT;
 	TIM2->CNT = 0;
 	if((t >= (4 * (AEHA_T - AEHA_MARGIN))) ) {
@@ -234,8 +236,8 @@ RcvCode AehaIrChek(unsigned char *irData)
 	
 	//データ格納
 	for(bit = 0; bit < AEHA_BIT_SIZE ;bit++){
-		while(funDigitalRead(PC1) == FUN_HIGH);
-		while(funDigitalRead(PC1) == FUN_LOW);
+		while(funDigitalRead(IR_INPUT_PIN) == FUN_HIGH);
+		while(funDigitalRead(IR_INPUT_PIN) == FUN_LOW);
 		t = TIM2->CNT;
 		TIM2->CNT = 0;
 		if((t < (2 * (AEHA_T - AEHA_MARGIN))) && (t > (4 * (AEHA_T + AEHA_MARGIN)))){
@@ -284,9 +286,9 @@ void nec_ir_recive()
 		} 
 		printf("\n");*/
 		if (irdata.data == 0xf8) {
-			funDigitalWrite(PA2, FUN_LOW);
+			funDigitalWrite(CHK_OUT_PIN, FUN_LOW);
 		} else if (irdata.data == 0x78) {
-			funDigitalWrite(PA2, FUN_HIGH);
+			funDigitalWrite(CHK_OUT_PIN, FUN_HIGH);
 		}
 	} else if (pat == recv_repeat) {
 		printf("RCV REPEAT \n");
@@ -311,9 +313,9 @@ void aeha_ir_recive()
 			printf("RCV REPEAT \n");
 		} 
 		if (ahea_data[4] == 0x01) {
-			funDigitalWrite(PA2, FUN_LOW);
+			funDigitalWrite(CHK_OUT_PIN, FUN_LOW);
 		} else if (ahea_data[4] == 0x02) {
-			funDigitalWrite(PA2, FUN_HIGH);
+			funDigitalWrite(CHK_OUT_PIN, FUN_HIGH);
 		}
 }
 // AEHA 受信処理プログラム
